@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Organic-Programming/sophia-who/internal/cli"
-	"github.com/Organic-Programming/sophia-who/internal/server"
+	"github.com/organic-programming/sophia-who/internal/cli"
+	"github.com/organic-programming/sophia-who/internal/server"
 )
 
 func main() {

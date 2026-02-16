@@ -11,9 +11,9 @@ import (
 
 	"nhooyr.io/websocket"
 
-	"github.com/Organic-Programming/go-holons/pkg/transport"
-	"github.com/Organic-Programming/sophia-who/pkg/identity"
-	pb "github.com/Organic-Programming/sophia-who/proto"
+	"github.com/organic-programming/go-holons/pkg/transport"
+	"github.com/organic-programming/sophia-who/pkg/identity"
+	pb "github.com/organic-programming/sophia-who/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

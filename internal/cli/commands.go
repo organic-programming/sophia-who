@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Organic-Programming/sophia-who/pkg/identity"
+	"github.com/organic-programming/sophia-who/pkg/identity"
 
 	"gopkg.in/yaml.v3"
 )

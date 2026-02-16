@@ -11,7 +11,7 @@ syntax = "proto3";
 
 package holon.sophia_who;
 
-option go_package = "github.com/Organic-Programming/sophia-who/proto";
+option go_package = "github.com/organic-programming/sophia-who/proto";
 
 // SophiaWhoService provides holon identity lifecycle management.
 service SophiaWhoService {
