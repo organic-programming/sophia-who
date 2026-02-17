@@ -91,6 +91,20 @@ func TestListIdentities(t *testing.T) {
 	if len(resp.Entries) != 2 {
 		t.Fatalf("ListIdentities returned %d entries, want 2", len(resp.Entries))
 	}
+
+	paths := map[string]bool{}
+	for _, e := range resp.Entries {
+		if e.RelativePath == "" {
+			t.Fatal("RelativePath must not be empty")
+		}
+		paths[e.RelativePath] = true
+	}
+	if !paths["Alpha"] {
+		t.Error("ListIdentities missing RelativePath for Alpha")
+	}
+	if !paths["Beta"] {
+		t.Error("ListIdentities missing RelativePath for Beta")
+	}
 }
 
 func TestListIdentitiesEmpty(t *testing.T) {

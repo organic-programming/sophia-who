@@ -9,10 +9,32 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// LocatedIdentity pairs a parsed Identity with the HOLON.md path it came from.
+type LocatedIdentity struct {
+	Identity Identity
+	Path     string
+}
+
 // FindAll scans the directory tree from root for HOLON.md files
 // and returns the parsed identities.
 func FindAll(root string) ([]Identity, error) {
-	var holons []Identity
+	located, err := FindAllWithPaths(root)
+	if err != nil {
+		return nil, err
+	}
+
+	holons := make([]Identity, 0, len(located))
+	for _, h := range located {
+		holons = append(holons, h.Identity)
+	}
+
+	return holons, nil
+}
+
+// FindAllWithPaths scans the directory tree from root for HOLON.md files
+// and returns parsed identities with source file paths.
+func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
+	var holons []LocatedIdentity
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -39,7 +61,10 @@ func FindAll(root string) ([]Identity, error) {
 			return nil
 		}
 
-		holons = append(holons, id)
+		holons = append(holons, LocatedIdentity{
+			Identity: id,
+			Path:     path,
+		})
 		return nil
 	})
 

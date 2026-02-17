@@ -95,7 +95,12 @@ func (s *Server) ShowIdentity(ctx context.Context, req *pb.ShowIdentityRequest) 
 
 // ListIdentities scans the project for all known holons.
 func (s *Server) ListIdentities(ctx context.Context, req *pb.ListIdentitiesRequest) (*pb.ListIdentitiesResponse, error) {
-	holons, err := identity.FindAll(".")
+	rootDir := "."
+	if req != nil && strings.TrimSpace(req.RootDir) != "" {
+		rootDir = req.RootDir
+	}
+
+	holons, err := identity.FindAllWithPaths(rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +108,9 @@ func (s *Server) ListIdentities(ctx context.Context, req *pb.ListIdentitiesReque
 	entries := make([]*pb.HolonEntry, 0, len(holons))
 	for _, h := range holons {
 		entries = append(entries, &pb.HolonEntry{
-			Identity: toProto(h),
-			Origin:   "local",
+			Identity:     toProto(h.Identity),
+			Origin:       "local",
+			RelativePath: relativeHolonDir(rootDir, h.Path),
 		})
 	}
 
@@ -175,6 +181,15 @@ func ListenAndServe(listenURI string, reflect bool) error {
 	}
 	log.Printf("Sophia Who? gRPC server listening on %s (%s)", listenURI, mode)
 	return s.Serve(lis)
+}
+
+func relativeHolonDir(rootDir, holonFilePath string) string {
+	dir := filepath.Dir(holonFilePath)
+	rel, err := filepath.Rel(rootDir, dir)
+	if err != nil {
+		return filepath.Clean(dir)
+	}
+	return filepath.Clean(rel)
 }
 
 // --- Conversion helpers (private to server package) ---

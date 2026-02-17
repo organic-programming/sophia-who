@@ -142,7 +142,8 @@ message ListIdentitiesResponse {
 // HolonEntry pairs an identity with its origin (local or cached).
 message HolonEntry {
   HolonIdentity identity = 1;
-  string origin = 2;  // "local" or "cached"
+  string origin = 2;         // "local" or "cached"
+  string relative_path = 3;  // Holon directory, relative to the scan root.
 }
 
 // --- PinVersion ---

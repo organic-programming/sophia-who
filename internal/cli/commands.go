@@ -97,42 +97,51 @@ func RunList() error {
 	type entry struct {
 		id     identity.Identity
 		origin string
+		path   string
 	}
 	var entries []entry
+	localSeen := map[string]struct{}{}
 
 	// Local holons: project/holons/
-	localHolons, err := identity.FindAll("holons")
+	localHolons, err := identity.FindAllWithPaths("holons")
 	if err == nil {
 		for _, h := range localHolons {
-			entries = append(entries, entry{id: h, origin: "local"})
+			entries = append(entries, entry{
+				id:     h.Identity,
+				origin: "local",
+				path:   relHolonDir(h.Path),
+			})
+			localSeen[h.Identity.UUID] = struct{}{}
 		}
 	}
 
 	// Also scan current directory root for HOLON.md (standalone project)
-	rootHolons, err := identity.FindAll(".")
+	rootHolons, err := identity.FindAllWithPaths(".")
 	if err == nil {
 		for _, h := range rootHolons {
-			// Avoid duplicates from the holons/ scan
-			duplicate := false
-			for _, e := range entries {
-				if e.id.UUID == h.UUID {
-					duplicate = true
-					break
-				}
+			if _, duplicate := localSeen[h.Identity.UUID]; duplicate {
+				continue
 			}
-			if !duplicate {
-				entries = append(entries, entry{id: h, origin: "local"})
-			}
+			entries = append(entries, entry{
+				id:     h.Identity,
+				origin: "local",
+				path:   relHolonDir(h.Path),
+			})
+			localSeen[h.Identity.UUID] = struct{}{}
 		}
 	}
 
 	// Cached holons: ~/.holon/cache/
 	cacheDir := holonCacheDir()
 	if cacheDir != "" {
-		cachedHolons, err := identity.FindAll(cacheDir)
+		cachedHolons, err := identity.FindAllWithPaths(cacheDir)
 		if err == nil {
 			for _, h := range cachedHolons {
-				entries = append(entries, entry{id: h, origin: "cached"})
+				entries = append(entries, entry{
+					id:     h.Identity,
+					origin: "cached",
+					path:   relHolonDir(h.Path),
+				})
 			}
 		}
 	}
@@ -142,12 +151,12 @@ func RunList() error {
 		return nil
 	}
 
-	fmt.Printf("%-38s %-20s %-8s %-25s %s\n", "UUID", "NAME", "ORIGIN", "CLADE", "STATUS")
-	fmt.Println(strings.Repeat("─", 105))
+	fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", "UUID", "NAME", "ORIGIN", "CLADE", "STATUS", "PATH")
+	fmt.Println(strings.Repeat("─", 150))
 
 	for _, e := range entries {
 		name := e.id.GivenName + " " + e.id.FamilyName
-		fmt.Printf("%-38s %-20s %-8s %-25s %s\n", e.id.UUID, name, e.origin, e.id.Clade, e.id.Status)
+		fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", e.id.UUID, name, e.origin, e.id.Clade, e.id.Status, e.path)
 	}
 
 	return nil
@@ -161,6 +170,15 @@ func holonCacheDir() string {
 		return ""
 	}
 	return filepath.Join(home, ".holon", "cache")
+}
+
+func relHolonDir(holonPath string) string {
+	dir := filepath.Dir(holonPath)
+	rel, err := filepath.Rel(".", dir)
+	if err != nil {
+		return filepath.Clean(dir)
+	}
+	return filepath.Clean(rel)
 }
 
 // RunPin captures version, OS, and architecture information for a holon's binary.
