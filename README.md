@@ -37,6 +37,10 @@ who pin <uuid>  — capture version/commit/arch for a holon's binary
 go build -o who ./cmd/who/
 ```
 
+```sh
+ go install ./cmd/who
+```
+
 ## Organic Programming
 
 This holon is part of the [Organic Programming](https://github.com/organic-programming/seed)

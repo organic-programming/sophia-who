@@ -8,6 +8,3 @@
 *.exe
 *.test
 *.out
-
-# Generated protobuf/gRPC stubs (derived from .proto)
-proto/
