@@ -93,7 +93,12 @@ func RunShow(target string) error {
 
 // RunList scans both local holons and the global cache, labeling the origin
 // of each so the actant knows what is local and what is a dependency.
-func RunList() error {
+func RunList(root string) error {
+	if root == "" {
+		root = "."
+	}
+	root = filepath.Clean(root)
+
 	type entry struct {
 		id     identity.Identity
 		origin string
@@ -102,32 +107,40 @@ func RunList() error {
 	var entries []entry
 	localSeen := map[string]struct{}{}
 
-	// Local holons: project/holons/
-	localHolons, err := identity.FindAllWithPaths("holons")
+	// Local holons: <root>/holons/
+	localHolons, err := identity.FindAllWithPaths(filepath.Join(root, "holons"))
 	if err == nil {
 		for _, h := range localHolons {
+			key := h.Identity.UUID
+			if key == "" {
+				key = h.Path
+			}
 			entries = append(entries, entry{
 				id:     h.Identity,
 				origin: "local",
-				path:   relHolonDir(h.Path),
+				path:   relHolonDir(root, h.Path),
 			})
-			localSeen[h.Identity.UUID] = struct{}{}
+			localSeen[key] = struct{}{}
 		}
 	}
 
-	// Also scan current directory root for HOLON.md (standalone project)
-	rootHolons, err := identity.FindAllWithPaths(".")
+	// Also scan root itself for HOLON.md (standalone project)
+	rootHolons, err := identity.FindAllWithPaths(root)
 	if err == nil {
 		for _, h := range rootHolons {
-			if _, duplicate := localSeen[h.Identity.UUID]; duplicate {
+			key := h.Identity.UUID
+			if key == "" {
+				key = h.Path
+			}
+			if _, duplicate := localSeen[key]; duplicate {
 				continue
 			}
 			entries = append(entries, entry{
 				id:     h.Identity,
 				origin: "local",
-				path:   relHolonDir(h.Path),
+				path:   relHolonDir(root, h.Path),
 			})
-			localSeen[h.Identity.UUID] = struct{}{}
+			localSeen[key] = struct{}{}
 		}
 	}
 
@@ -140,7 +153,7 @@ func RunList() error {
 				entries = append(entries, entry{
 					id:     h.Identity,
 					origin: "cached",
-					path:   relHolonDir(h.Path),
+					path:   relHolonDir(root, h.Path),
 				})
 			}
 		}
@@ -172,9 +185,9 @@ func holonCacheDir() string {
 	return filepath.Join(home, ".holon", "cache")
 }
 
-func relHolonDir(holonPath string) string {
+func relHolonDir(root, holonPath string) string {
 	dir := filepath.Dir(holonPath)
-	rel, err := filepath.Rel(".", dir)
+	rel, err := filepath.Rel(root, dir)
 	if err != nil {
 		return filepath.Clean(dir)
 	}

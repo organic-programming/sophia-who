@@ -27,7 +27,15 @@ func main() {
 		}
 		err = cli.RunShow(os.Args[2])
 	case "list":
-		err = cli.RunList()
+		if len(os.Args) > 3 {
+			fmt.Fprintln(os.Stderr, "usage: who list [root]")
+			os.Exit(1)
+		}
+		root := "."
+		if len(os.Args) == 3 {
+			root = os.Args[2]
+		}
+		err = cli.RunList(root)
 	case "pin":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "usage: who pin <uuid>")
@@ -63,7 +71,7 @@ func printUsage() {
 Usage:
   who new                                     create a new holon identity
   who show <uuid>                             display a holon's identity
-  who list                                    list all known holons
+  who list [root]                             list all known holons in root
   who pin <uuid>                              capture version/commit/arch
   who serve [--listen tcp://:9090]            start gRPC server
   who serve --listen unix:///tmp/who.sock     Unix domain socket
