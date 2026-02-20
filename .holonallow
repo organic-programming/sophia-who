@@ -1,0 +1,4 @@
+# Tools sophia-who is authorized to invoke
+go
+git
+protoc
