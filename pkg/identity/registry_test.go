@@ -325,3 +325,46 @@ func TestFindAllWithDotHolonDir(t *testing.T) {
 		t.Errorf("FindAll found %d holons, want 1 (.holon/ should not be skipped)", len(holons))
 	}
 }
+
+func TestScanAllWithPathsStreamsFoundAndProgress(t *testing.T) {
+	root := setupTestDir(t)
+
+	var found []string
+	var progress []ScanProgress
+
+	err := ScanAllWithPaths(root, 1, func(h LocatedIdentity) {
+		found = append(found, h.Identity.UUID)
+	}, func(p ScanProgress) {
+		progress = append(progress, p)
+	})
+	if err != nil {
+		t.Fatalf("ScanAllWithPaths failed: %v", err)
+	}
+
+	if len(found) != 2 {
+		t.Fatalf("ScanAllWithPaths found %d holons, want 2", len(found))
+	}
+
+	uuids := map[string]bool{}
+	for _, uuid := range found {
+		uuids[uuid] = true
+	}
+	if !uuids["aaaa-1111"] || !uuids["bbbb-2222"] {
+		t.Fatalf("ScanAllWithPaths returned unexpected UUIDs: %#v", found)
+	}
+	if uuids["hidden-uuid"] {
+		t.Fatal("ScanAllWithPaths should skip hidden directories")
+	}
+
+	if len(progress) == 0 {
+		t.Fatal("ScanAllWithPaths should emit progress updates")
+	}
+
+	last := progress[len(progress)-1]
+	if last.HolonsFound != 2 {
+		t.Fatalf("last progress holons found = %d, want 2", last.HolonsFound)
+	}
+	if last.ScannedFiles == 0 {
+		t.Fatal("last progress scanned files should be > 0")
+	}
+}

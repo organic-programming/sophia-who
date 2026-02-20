@@ -15,6 +15,12 @@ type LocatedIdentity struct {
 	Path     string
 }
 
+// ScanProgress reports scan progress for HOLON.md discovery.
+type ScanProgress struct {
+	ScannedFiles int
+	HolonsFound  int
+}
+
 // FindAll scans the directory tree from root for HOLON.md files
 // and returns the parsed identities.
 func FindAll(root string) ([]Identity, error) {
@@ -36,6 +42,35 @@ func FindAll(root string) ([]Identity, error) {
 func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
 	var holons []LocatedIdentity
 
+	err := ScanAllWithPaths(root, 0, func(h LocatedIdentity) {
+		holons = append(holons, h)
+	}, nil)
+
+	return holons, err
+}
+
+// ScanAllWithPaths scans the directory tree from root for HOLON.md files.
+// Each parsed holon is emitted through onFound as soon as it is discovered.
+// If onProgress is provided, it is called periodically and once at the end.
+func ScanAllWithPaths(root string, progressEvery int, onFound func(LocatedIdentity), onProgress func(ScanProgress)) error {
+	if progressEvery < 0 {
+		progressEvery = 0
+	}
+
+	scanned := 0
+	found := 0
+	reportProgress := func(force bool) {
+		if onProgress == nil {
+			return
+		}
+		if force || (progressEvery > 0 && scanned > 0 && scanned%progressEvery == 0) {
+			onProgress(ScanProgress{
+				ScannedFiles: scanned,
+				HolonsFound:  found,
+			})
+		}
+	}
+
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -47,6 +82,10 @@ func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
 			}
 			return nil
 		}
+
+		scanned++
+		reportProgress(false)
+
 		if d.Name() != "HOLON.md" {
 			return nil
 		}
@@ -61,14 +100,24 @@ func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
 			return nil
 		}
 
-		holons = append(holons, LocatedIdentity{
+		located := LocatedIdentity{
 			Identity: id,
 			Path:     path,
-		})
+		}
+		found++
+		if onFound != nil {
+			onFound(located)
+		}
+
 		return nil
 	})
 
-	return holons, err
+	if err != nil {
+		return err
+	}
+
+	reportProgress(true)
+	return nil
 }
 
 // FindByUUID locates a HOLON.md file by full UUID or prefix.

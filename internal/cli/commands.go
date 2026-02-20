@@ -99,77 +99,86 @@ func RunList(root string) error {
 	}
 	root = filepath.Clean(root)
 
-	type entry struct {
-		id     identity.Identity
-		origin string
-		path   string
-	}
-	var entries []entry
 	localSeen := map[string]struct{}{}
+	printedHeader := false
+	printedEntries := 0
+	inlineProgress := isTerminal(os.Stderr)
+	progressVisible := false
+
+	clearProgressLine := func() {
+		if !inlineProgress || !progressVisible {
+			return
+		}
+		fmt.Fprint(os.Stderr, "\r\033[2K")
+		progressVisible = false
+	}
+
+	printProgress := func(scanLabel string, scannedFiles int) {
+		if !inlineProgress {
+			fmt.Fprintf(os.Stderr, "[scan] %s: %d files scanned\n", scanLabel, scannedFiles)
+			return
+		}
+		fmt.Fprintf(os.Stderr, "\r\033[2K[scan] %s: %d files scanned", scanLabel, scannedFiles)
+		progressVisible = true
+	}
+
+	printEntry := func(id identity.Identity, origin, path string) {
+		clearProgressLine()
+
+		if !printedHeader {
+			fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", "UUID", "NAME", "ORIGIN", "CLADE", "STATUS", "PATH")
+			fmt.Println(strings.Repeat("─", 150))
+			printedHeader = true
+		}
+
+		name := strings.TrimSpace(id.GivenName + " " + id.FamilyName)
+		fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", id.UUID, name, origin, id.Clade, id.Status, path)
+		printedEntries++
+	}
+
+	scanAndPrint := func(scanRoot, scanLabel, origin string, dedupe map[string]struct{}) {
+		lastReported := 0
+		err := identity.ScanAllWithPaths(scanRoot, 500, func(h identity.LocatedIdentity) {
+			key := h.Identity.UUID
+			if key == "" {
+				key = h.Path
+			}
+			if dedupe != nil {
+				if _, duplicate := dedupe[key]; duplicate {
+					return
+				}
+				dedupe[key] = struct{}{}
+			}
+
+			printEntry(h.Identity, origin, relHolonDir(root, h.Path))
+		}, func(progress identity.ScanProgress) {
+			if progress.ScannedFiles == 0 || progress.ScannedFiles == lastReported {
+				return
+			}
+			lastReported = progress.ScannedFiles
+			printProgress(scanLabel, progress.ScannedFiles)
+		})
+		if err != nil {
+			return
+		}
+	}
 
 	// Local holons: <root>/holons/
-	localHolons, err := identity.FindAllWithPaths(filepath.Join(root, "holons"))
-	if err == nil {
-		for _, h := range localHolons {
-			key := h.Identity.UUID
-			if key == "" {
-				key = h.Path
-			}
-			entries = append(entries, entry{
-				id:     h.Identity,
-				origin: "local",
-				path:   relHolonDir(root, h.Path),
-			})
-			localSeen[key] = struct{}{}
-		}
-	}
+	scanAndPrint(filepath.Join(root, "holons"), "local", "local", localSeen)
 
 	// Also scan root itself for HOLON.md (standalone project)
-	rootHolons, err := identity.FindAllWithPaths(root)
-	if err == nil {
-		for _, h := range rootHolons {
-			key := h.Identity.UUID
-			if key == "" {
-				key = h.Path
-			}
-			if _, duplicate := localSeen[key]; duplicate {
-				continue
-			}
-			entries = append(entries, entry{
-				id:     h.Identity,
-				origin: "local",
-				path:   relHolonDir(root, h.Path),
-			})
-			localSeen[key] = struct{}{}
-		}
-	}
+	scanAndPrint(root, "root", "local", localSeen)
 
 	// Cached holons: ~/.holon/cache/
 	cacheDir := holonCacheDir()
 	if cacheDir != "" {
-		cachedHolons, err := identity.FindAllWithPaths(cacheDir)
-		if err == nil {
-			for _, h := range cachedHolons {
-				entries = append(entries, entry{
-					id:     h.Identity,
-					origin: "cached",
-					path:   relHolonDir(root, h.Path),
-				})
-			}
-		}
+		scanAndPrint(cacheDir, "cache", "cached", nil)
 	}
 
-	if len(entries) == 0 {
+	clearProgressLine()
+
+	if printedEntries == 0 {
 		fmt.Println("No holons found.")
-		return nil
-	}
-
-	fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", "UUID", "NAME", "ORIGIN", "CLADE", "STATUS", "PATH")
-	fmt.Println(strings.Repeat("─", 150))
-
-	for _, e := range entries {
-		name := e.id.GivenName + " " + e.id.FamilyName
-		fmt.Printf("%-38s %-33s %-8s %-25s %-8s %s\n", e.id.UUID, name, e.origin, e.id.Clade, e.id.Status, e.path)
 	}
 
 	return nil
@@ -192,6 +201,17 @@ func relHolonDir(root, holonPath string) string {
 		return filepath.Clean(dir)
 	}
 	return filepath.Clean(rel)
+}
+
+func isTerminal(f *os.File) bool {
+	if f == nil {
+		return false
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
 }
 
 // RunPin captures version, OS, and architecture information for a holon's binary.
