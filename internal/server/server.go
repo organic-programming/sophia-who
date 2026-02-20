@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	"github.com/organic-programming/go-holons/pkg/transport"
-	"github.com/organic-programming/sophia-who/pkg/identity"
 	pb "github.com/organic-programming/sophia-who/gen/go/sophia_who/v1"
+	"github.com/organic-programming/sophia-who/pkg/identity"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	grpcReflection "google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 )
 
 // Server implements the SophiaWhoService gRPC interface.
@@ -24,11 +26,24 @@ type Server struct {
 
 // CreateIdentity creates a new holon identity from a gRPC request.
 func (s *Server) CreateIdentity(ctx context.Context, req *pb.CreateIdentityRequest) (*pb.CreateIdentityResponse, error) {
-	id := identity.New()
-
-	if req.GivenName == "" || req.FamilyName == "" || req.Motto == "" || req.Composer == "" {
-		return nil, fmt.Errorf("given_name, family_name, motto, and composer are required")
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
+
+	if strings.TrimSpace(req.GivenName) == "" {
+		return nil, status.Error(codes.InvalidArgument, "given_name is required")
+	}
+	if strings.TrimSpace(req.FamilyName) == "" {
+		return nil, status.Error(codes.InvalidArgument, "family_name is required")
+	}
+	if strings.TrimSpace(req.Motto) == "" {
+		return nil, status.Error(codes.InvalidArgument, "motto is required")
+	}
+	if strings.TrimSpace(req.Composer) == "" {
+		return nil, status.Error(codes.InvalidArgument, "composer is required")
+	}
+
+	id := identity.New()
 
 	id.GivenName = req.GivenName
 	id.FamilyName = req.FamilyName
@@ -55,12 +70,12 @@ func (s *Server) CreateIdentity(ctx context.Context, req *pb.CreateIdentityReque
 	}
 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, fmt.Errorf("cannot create directory: %w", err)
+		return nil, status.Errorf(codes.Internal, "cannot create directory: %v", err)
 	}
 
 	outputPath := filepath.Join(outputDir, "HOLON.md")
 	if err := identity.WriteHolonMD(id, outputPath); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "write HOLON.md: %v", err)
 	}
 
 	return &pb.CreateIdentityResponse{
@@ -71,19 +86,26 @@ func (s *Server) CreateIdentity(ctx context.Context, req *pb.CreateIdentityReque
 
 // ShowIdentity retrieves a holon's identity by UUID.
 func (s *Server) ShowIdentity(ctx context.Context, req *pb.ShowIdentityRequest) (*pb.ShowIdentityResponse, error) {
+	if req == nil || strings.TrimSpace(req.Uuid) == "" {
+		return nil, status.Error(codes.InvalidArgument, "uuid is required")
+	}
+
 	path, err := identity.FindByUUID(".", req.Uuid)
 	if err != nil {
-		return nil, err
+		if isIdentityNotFound(err) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "resolve holon by uuid: %v", err)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read %s: %w", path, err)
+		return nil, status.Errorf(codes.Internal, "cannot read %s: %v", path, err)
 	}
 
 	id, _, err := identity.ParseFrontmatter(data)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "parse HOLON.md: %v", err)
 	}
 
 	return &pb.ShowIdentityResponse{
@@ -102,7 +124,7 @@ func (s *Server) ListIdentities(ctx context.Context, req *pb.ListIdentitiesReque
 
 	holons, err := identity.FindAllWithPaths(rootDir)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "scan identities: %v", err)
 	}
 
 	entries := make([]*pb.HolonEntry, 0, len(holons))
@@ -119,19 +141,26 @@ func (s *Server) ListIdentities(ctx context.Context, req *pb.ListIdentitiesReque
 
 // PinVersion updates the version pinning for a holon.
 func (s *Server) PinVersion(ctx context.Context, req *pb.PinVersionRequest) (*pb.PinVersionResponse, error) {
+	if req == nil || strings.TrimSpace(req.Uuid) == "" {
+		return nil, status.Error(codes.InvalidArgument, "uuid is required")
+	}
+
 	path, err := identity.FindByUUID(".", req.Uuid)
 	if err != nil {
-		return nil, err
+		if isIdentityNotFound(err) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "resolve holon by uuid: %v", err)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read %s: %w", path, err)
+		return nil, status.Errorf(codes.Internal, "cannot read %s: %v", path, err)
 	}
 
 	id, _, err := identity.ParseFrontmatter(data)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "parse HOLON.md: %v", err)
 	}
 
 	if req.BinaryPath != "" {
@@ -154,7 +183,7 @@ func (s *Server) PinVersion(ctx context.Context, req *pb.PinVersionRequest) (*pb
 	}
 
 	if err := identity.WriteHolonMD(id, path); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "write HOLON.md: %v", err)
 	}
 
 	return &pb.PinVersionResponse{Identity: toProto(id)}, nil
@@ -190,6 +219,13 @@ func relativeHolonDir(rootDir, holonFilePath string) string {
 		return filepath.Clean(dir)
 	}
 	return filepath.Clean(rel)
+}
+
+func isIdentityNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(err.Error())), "holon not found:")
 }
 
 // --- Conversion helpers (private to server package) ---
