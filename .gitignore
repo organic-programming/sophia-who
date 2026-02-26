@@ -1,0 +1,10 @@
+# Sophia Who? — holon-local .gitignore
+# Each holon carries its own .gitignore (Convention: HOLON_FILES.md)
+
+# Compiled binary
+/who
+
+# Go build artifacts
+*.exe
+*.test
+*.out
