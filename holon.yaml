@@ -1,4 +1,34 @@
+# ── Identity ──────────────────────────────────────────
 schema: holon/v0
+uuid: "b00932e5-49d4-4724-ab4b-e2fc9e22e108"
+given_name: Sophia
+family_name: "Who?"
+motto: Know thyself.
+composer: B. ALTER
+clade: deterministic/pure
+status: draft
+born: "2026-02-12"
+
+# ── Lineage ───────────────────────────────────────────
+parents: []
+reproduction: manual
+generated_by: manual
+
+# ── Description ───────────────────────────────────────
+description: |
+  Sophia Who? is the first holon — the primordial identity-maker. She is
+  a Go CLI that interactively guides a composer (human or agent) through
+  the creation of a holon identity card (`HOLON.md`).
+  
+  She has no parents. Every other holon's identity passes through her.
+
+# ── Contract ──────────────────────────────────────────
+contract:
+  proto: sophia_who.proto
+  service: SophiaWhoService
+  rpcs: [CreateIdentity, ShowIdentity, ListIdentities]
+
+# ── Operational ───────────────────────────────────────
 kind: native
 build:
   runner: go-module
@@ -7,4 +37,4 @@ requires:
   commands: [go]
   files: [go.mod]
 artifacts:
-  binary: .op/build/bin/sophia-who
+  binary: sophia-who
