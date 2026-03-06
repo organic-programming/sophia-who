@@ -34,11 +34,11 @@ who pin <uuid>  — capture version/commit/arch for a holon's binary
 ## Build
 
 ```sh
-go build -o who ./cmd/who/
+go build -o sophia-who ./cmd/who/
 ```
 
 ```sh
- go install ./cmd/who
+go build -o "$(go env GOPATH)/bin/sophia-who" ./cmd/who/
 ```
 
 ## Organic Programming

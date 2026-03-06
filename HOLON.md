@@ -13,12 +13,8 @@ born: "2026-02-12"
 parents: []
 reproduction: "manual"
 
-# Optional
-aliases: ["who", "sophia"]
-
 # Metadata
 generated_by: "manual"
-lang: "go"
 proto_status: draft
 ---
 
