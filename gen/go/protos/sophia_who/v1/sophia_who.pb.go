@@ -370,7 +370,7 @@ type CreateIdentityRequest struct {
 	Reproduction  ReproductionMode       `protobuf:"varint,6,opt,name=reproduction,proto3,enum=sophia_who.v1.ReproductionMode" json:"reproduction,omitempty"`
 	Lang          string                 `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"`
 	Aliases       []string               `protobuf:"bytes,8,rep,name=aliases,proto3" json:"aliases,omitempty"`
-	OutputDir     string                 `protobuf:"bytes,10,opt,name=output_dir,json=outputDir,proto3" json:"output_dir,omitempty"` // Default: .holon/<name>/
+	OutputDir     string                 `protobuf:"bytes,10,opt,name=output_dir,json=outputDir,proto3" json:"output_dir,omitempty"` // Default: holons/<name>/
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

@@ -49,7 +49,7 @@ func RunNew() error {
 
 	dirName := strings.ToLower(id.GivenName + "-" + strings.TrimSuffix(id.FamilyName, "?"))
 	dirName = strings.ReplaceAll(dirName, " ", "-")
-	outputDir := askDefault(scanner, "Output directory", filepath.Join(".holon", dirName))
+	outputDir := askDefault(scanner, "Output directory", filepath.Join("holons", dirName))
 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("cannot create directory %s: %w", outputDir, err)
@@ -162,7 +162,7 @@ func RunList(root string) error {
 	// Also scan root itself for HOLON.md (standalone project)
 	scanAndPrint(root, "root", "local", localSeen)
 
-	// Cached holons: ~/.holon/cache/
+	// Cached holons: $OPPATH/cache/ (default: ~/.op/cache/)
 	cacheDir := holonCacheDir()
 	if cacheDir != "" {
 		scanAndPrint(cacheDir, "cache", "cached", nil)
@@ -177,14 +177,18 @@ func RunList(root string) error {
 	return nil
 }
 
-// holonCacheDir returns the global holon cache directory (~/.holon/cache/).
+// holonCacheDir returns the global holon cache directory
+// ($OPPATH/cache/, default: ~/.op/cache/).
 // Returns an empty string if the home directory cannot be determined.
 func holonCacheDir() string {
+	if runtimeHome := strings.TrimSpace(os.Getenv("OPPATH")); runtimeHome != "" {
+		return filepath.Join(runtimeHome, "cache")
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, ".holon", "cache")
+	return filepath.Join(home, ".op", "cache")
 }
 
 func relHolonDir(root, holonPath string) string {

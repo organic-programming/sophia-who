@@ -77,7 +77,7 @@ func ScanAllWithPaths(root string, progressEvery int, onFound func(LocatedIdenti
 		}
 		if d.IsDir() {
 			name := d.Name()
-			if name != "." && name != ".holon" && strings.HasPrefix(name, ".") {
+			if name != "." && strings.HasPrefix(name, ".") {
 				return filepath.SkipDir
 			}
 			return nil

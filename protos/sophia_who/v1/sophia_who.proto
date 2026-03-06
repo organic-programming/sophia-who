@@ -95,7 +95,7 @@ message CreateIdentityRequest {
   ReproductionMode reproduction = 6;
   string lang = 7;
   repeated string aliases = 8;
-  string output_dir = 10;      // Default: .holon/<name>/
+  string output_dir = 10;      // Default: holons/<name>/
 }
 
 message CreateIdentityResponse {
@@ -131,4 +131,3 @@ message HolonEntry {
   string origin = 2;         // "local" or "cached"
   string relative_path = 3;  // Holon directory, relative to the scan root.
 }
-

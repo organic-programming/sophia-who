@@ -433,10 +433,10 @@ type CreateIdentityRequest struct {
 	Composer       string                 `protobuf:"bytes,4,opt,name=composer,proto3" json:"composer,omitempty"`                       // Required.
 	Clade          Clade                  `protobuf:"varint,5,opt,name=clade,proto3,enum=sophia_who.v1.Clade" json:"clade,omitempty"`   // Required.
 	Reproduction   ReproductionMode       `protobuf:"varint,6,opt,name=reproduction,proto3,enum=sophia_who.v1.ReproductionMode" json:"reproduction,omitempty"`
-	Lang           string                 `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"` // Default: from .holonconfig
+	Lang           string                 `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"`
 	Aliases        []string               `protobuf:"bytes,8,rep,name=aliases,proto3" json:"aliases,omitempty"`
 	WrappedLicense string                 `protobuf:"bytes,9,opt,name=wrapped_license,json=wrappedLicense,proto3" json:"wrapped_license,omitempty"`
-	OutputDir      string                 `protobuf:"bytes,10,opt,name=output_dir,json=outputDir,proto3" json:"output_dir,omitempty"` // Default: .holon/<name>/
+	OutputDir      string                 `protobuf:"bytes,10,opt,name=output_dir,json=outputDir,proto3" json:"output_dir,omitempty"` // Default: holons/<name>/
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }

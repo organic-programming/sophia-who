@@ -304,10 +304,10 @@ func TestFindAllIgnoresNonHolonFiles(t *testing.T) {
 	}
 }
 
-func TestFindAllWithDotHolonDir(t *testing.T) {
+func TestFindAllSkipsDotHolonDir(t *testing.T) {
 	root := t.TempDir()
 
-	// Create a .holon/ directory (should NOT be skipped)
+	// Create a .holon/ directory (should be skipped like any hidden directory)
 	dir := filepath.Join(root, ".holon", "some-tool")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
@@ -321,8 +321,8 @@ func TestFindAllWithDotHolonDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindAll failed: %v", err)
 	}
-	if len(holons) != 1 {
-		t.Errorf("FindAll found %d holons, want 1 (.holon/ should not be skipped)", len(holons))
+	if len(holons) != 0 {
+		t.Errorf("FindAll found %d holons, want 0 (.holon/ should now be skipped)", len(holons))
 	}
 }
 

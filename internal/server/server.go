@@ -63,7 +63,7 @@ func (s *Server) CreateIdentity(ctx context.Context, req *pb.CreateIdentityReque
 	if outputDir == "" {
 		dirName := strings.ToLower(id.GivenName + "-" + strings.TrimSuffix(id.FamilyName, "?"))
 		dirName = strings.ReplaceAll(dirName, " ", "-")
-		outputDir = filepath.Join(".holon", dirName)
+		outputDir = filepath.Join("holons", dirName)
 	}
 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
