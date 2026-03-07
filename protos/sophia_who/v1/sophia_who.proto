@@ -3,7 +3,7 @@
 // Clade: deterministic/pure
 // Status: draft
 //
-// Sophia Who? creates and manages identity cards (HOLON.md)
+// Sophia Who? creates and manages identity cards (holon.yaml)
 // for other holons. She is the primordial holon — the midwife
 // of the ecosystem.
 
@@ -17,7 +17,7 @@ option go_package = "github.com/organic-programming/sophia-who/gen/go/sophia_who
 service SophiaWhoService {
 
   // CreateIdentity interactively creates a new holon identity.
-  // Returns the generated HOLON.md content and the file path.
+  // Returns the generated holon.yaml content and the file path.
   rpc CreateIdentity (CreateIdentityRequest) returns (CreateIdentityResponse);
 
   // ShowIdentity retrieves a holon's identity by UUID.
@@ -100,7 +100,7 @@ message CreateIdentityRequest {
 
 message CreateIdentityResponse {
   HolonIdentity identity = 1;
-  string file_path = 2;        // Where HOLON.md was written.
+  string file_path = 2;        // Where holon.yaml was written.
 }
 
 // --- ShowIdentity ---
@@ -112,7 +112,7 @@ message ShowIdentityRequest {
 message ShowIdentityResponse {
   HolonIdentity identity = 1;
   string file_path = 2;
-  string raw_content = 3;      // The full HOLON.md file content.
+  string raw_content = 3;      // The full holon.yaml file content.
 }
 
 // --- ListIdentities ---

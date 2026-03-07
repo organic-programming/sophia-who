@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestWriteHolonMD(t *testing.T) {
+func TestWriteHolonYAML(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "HOLON.md")
+	path := filepath.Join(dir, ManifestFileName)
 
 	id := New()
 	id.GivenName = "WriteTest"
@@ -18,11 +18,10 @@ func TestWriteHolonMD(t *testing.T) {
 	id.Clade = "deterministic/pure"
 	id.Lang = "go"
 
-	if err := WriteHolonMD(id, path); err != nil {
-		t.Fatalf("WriteHolonMD failed: %v", err)
+	if err := WriteHolonYAML(id, path); err != nil {
+		t.Fatalf("WriteHolonYAML failed: %v", err)
 	}
 
-	// Verify file exists and is non-empty
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatalf("file not created: %v", err)
@@ -32,9 +31,9 @@ func TestWriteHolonMD(t *testing.T) {
 	}
 }
 
-func TestWriteHolonMDRoundTrip(t *testing.T) {
+func TestWriteHolonYAMLRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "HOLON.md")
+	path := filepath.Join(dir, ManifestFileName)
 
 	original := New()
 	original.GivenName = "RoundTrip"
@@ -46,22 +45,15 @@ func TestWriteHolonMDRoundTrip(t *testing.T) {
 	original.Lang = "go"
 	original.Aliases = []string{"rt", "round"}
 
-	if err := WriteHolonMD(original, path); err != nil {
-		t.Fatalf("WriteHolonMD failed: %v", err)
+	if err := WriteHolonYAML(original, path); err != nil {
+		t.Fatalf("WriteHolonYAML failed: %v", err)
 	}
 
-	// Read back and parse
-	data, err := os.ReadFile(path)
+	parsed, raw, err := ReadHolonYAML(path)
 	if err != nil {
-		t.Fatalf("cannot read file: %v", err)
+		t.Fatalf("ReadHolonYAML failed on written file: %v", err)
 	}
 
-	parsed, body, err := ParseFrontmatter(data)
-	if err != nil {
-		t.Fatalf("ParseFrontmatter failed on written file: %v", err)
-	}
-
-	// Verify round-trip fidelity
 	if parsed.UUID != original.UUID {
 		t.Errorf("UUID: got %q, want %q", parsed.UUID, original.UUID)
 	}
@@ -89,19 +81,17 @@ func TestWriteHolonMDRoundTrip(t *testing.T) {
 	if len(parsed.Aliases) != len(original.Aliases) {
 		t.Errorf("Aliases count: got %d, want %d", len(parsed.Aliases), len(original.Aliases))
 	}
-
-	// Body should contain the holon's name
-	if body == "" {
-		t.Error("body must not be empty")
+	if len(raw) == 0 {
+		t.Error("raw file content must not be empty")
 	}
 }
 
-func TestWriteHolonMDInvalidPath(t *testing.T) {
+func TestWriteHolonYAMLInvalidPath(t *testing.T) {
 	id := New()
 	id.GivenName = "Bad"
 	id.FamilyName = "Path"
 
-	err := WriteHolonMD(id, "/nonexistent/dir/HOLON.md")
+	err := WriteHolonYAML(id, "/nonexistent/dir/holon.yaml")
 	if err == nil {
 		t.Fatal("expected error writing to invalid path")
 	}

@@ -3,7 +3,7 @@
 // Clade: deterministic/pure
 // Status: draft
 //
-// Sophia Who? creates and manages identity cards (HOLON.md)
+// Sophia Who? creates and manages identity cards (holon.yaml)
 // for other holons. She is the primordial holon — the midwife
 // of the ecosystem.
 
@@ -471,7 +471,7 @@ func (x *CreateIdentityRequest) GetOutputDir() string {
 type CreateIdentityResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Identity      *HolonIdentity         `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"` // Where HOLON.md was written.
+	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"` // Where holon.yaml was written.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -568,7 +568,7 @@ type ShowIdentityResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Identity      *HolonIdentity         `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
 	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
-	RawContent    string                 `protobuf:"bytes,3,opt,name=raw_content,json=rawContent,proto3" json:"raw_content,omitempty"` // The full HOLON.md file content.
+	RawContent    string                 `protobuf:"bytes,3,opt,name=raw_content,json=rawContent,proto3" json:"raw_content,omitempty"` // The full holon.yaml file content.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

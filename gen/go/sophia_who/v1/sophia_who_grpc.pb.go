@@ -3,7 +3,7 @@
 // Clade: deterministic/pure
 // Status: draft
 //
-// Sophia Who? creates and manages identity cards (HOLON.md)
+// Sophia Who? creates and manages identity cards (holon.yaml)
 // for other holons. She is the primordial holon — the midwife
 // of the ecosystem.
 
@@ -41,7 +41,7 @@ const (
 // SophiaWhoService provides holon identity lifecycle management.
 type SophiaWhoServiceClient interface {
 	// CreateIdentity interactively creates a new holon identity.
-	// Returns the generated HOLON.md content and the file path.
+	// Returns the generated holon.yaml content and the file path.
 	CreateIdentity(ctx context.Context, in *CreateIdentityRequest, opts ...grpc.CallOption) (*CreateIdentityResponse, error)
 	// ShowIdentity retrieves a holon's identity by UUID.
 	ShowIdentity(ctx context.Context, in *ShowIdentityRequest, opts ...grpc.CallOption) (*ShowIdentityResponse, error)
@@ -106,7 +106,7 @@ func (c *sophiaWhoServiceClient) PinVersion(ctx context.Context, in *PinVersionR
 // SophiaWhoService provides holon identity lifecycle management.
 type SophiaWhoServiceServer interface {
 	// CreateIdentity interactively creates a new holon identity.
-	// Returns the generated HOLON.md content and the file path.
+	// Returns the generated holon.yaml content and the file path.
 	CreateIdentity(context.Context, *CreateIdentityRequest) (*CreateIdentityResponse, error)
 	// ShowIdentity retrieves a holon's identity by UUID.
 	ShowIdentity(context.Context, *ShowIdentityRequest) (*ShowIdentityResponse, error)

@@ -8,17 +8,19 @@ composer: B. ALTER
 clade: deterministic/pure
 status: draft
 born: "2026-02-12"
+aliases: [who, sophia]
 
 # ── Lineage ───────────────────────────────────────────
 parents: []
 reproduction: manual
 generated_by: manual
+lang: go
 
 # ── Description ───────────────────────────────────────
 description: |
   Sophia Who? is the first holon — the primordial identity-maker. She is
   a Go CLI that interactively guides a composer (human or agent) through
-  the creation of a holon identity card (`HOLON.md`).
+  the creation of a holon identity card (`holon.yaml`).
   
   She has no parents. Every other holon's identity passes through her.
 

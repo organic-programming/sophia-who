@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,19 +10,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// LocatedIdentity pairs a parsed Identity with the HOLON.md path it came from.
+const ManifestFileName = "holon.yaml"
+
+// LocatedIdentity pairs a parsed Identity with the holon.yaml path it came from.
 type LocatedIdentity struct {
 	Identity Identity
 	Path     string
 }
 
-// ScanProgress reports scan progress for HOLON.md discovery.
+// ScanProgress reports scan progress for holon.yaml discovery.
 type ScanProgress struct {
 	ScannedFiles int
 	HolonsFound  int
 }
 
-// FindAll scans the directory tree from root for HOLON.md files
+// FindAll scans the directory tree from root for holon.yaml files
 // and returns the parsed identities.
 func FindAll(root string) ([]Identity, error) {
 	located, err := FindAllWithPaths(root)
@@ -37,7 +40,7 @@ func FindAll(root string) ([]Identity, error) {
 	return holons, nil
 }
 
-// FindAllWithPaths scans the directory tree from root for HOLON.md files
+// FindAllWithPaths scans the directory tree from root for holon.yaml files
 // and returns parsed identities with source file paths.
 func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
 	var holons []LocatedIdentity
@@ -49,7 +52,7 @@ func FindAllWithPaths(root string) ([]LocatedIdentity, error) {
 	return holons, err
 }
 
-// ScanAllWithPaths scans the directory tree from root for HOLON.md files.
+// ScanAllWithPaths scans the directory tree from root for holon.yaml files.
 // Each parsed holon is emitted through onFound as soon as it is discovered.
 // If onProgress is provided, it is called periodically and once at the end.
 func ScanAllWithPaths(root string, progressEvery int, onFound func(LocatedIdentity), onProgress func(ScanProgress)) error {
@@ -86,16 +89,11 @@ func ScanAllWithPaths(root string, progressEvery int, onFound func(LocatedIdenti
 		scanned++
 		reportProgress(false)
 
-		if d.Name() != "HOLON.md" {
+		if d.Name() != ManifestFileName {
 			return nil
 		}
 
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil
-		}
-
-		id, _, err := ParseFrontmatter(data)
+		id, _, err := ReadHolonYAML(path)
 		if err != nil {
 			return nil
 		}
@@ -120,21 +118,15 @@ func ScanAllWithPaths(root string, progressEvery int, onFound func(LocatedIdenti
 	return nil
 }
 
-// FindByUUID locates a HOLON.md file by full UUID or prefix.
+// FindByUUID locates a holon.yaml file by full UUID or prefix.
 func FindByUUID(root, target string) (string, error) {
 	var found string
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || d.Name() != "HOLON.md" {
+		if err != nil || d.IsDir() || d.Name() != ManifestFileName {
 			return nil
 		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil
-		}
-
-		id, _, err := ParseFrontmatter(data)
+		id, _, err := ReadHolonYAML(path)
 		if err != nil {
 			return nil
 		}
@@ -156,32 +148,25 @@ func FindByUUID(root, target string) (string, error) {
 	return found, nil
 }
 
-// ParseFrontmatter extracts the YAML frontmatter and the remaining
-// markdown body from a HOLON.md file.
-func ParseFrontmatter(data []byte) (Identity, string, error) {
-	content := string(data)
-
-	if !strings.HasPrefix(content, "---") {
-		return Identity{}, "", fmt.Errorf("no YAML frontmatter found")
-	}
-
-	rest := content[3:]
-	if len(rest) > 0 && rest[0] == '\n' {
-		rest = rest[1:]
-	}
-
-	end := strings.Index(rest, "\n---")
-	if end < 0 {
-		return Identity{}, "", fmt.Errorf("unclosed YAML frontmatter")
-	}
-
-	yamlBlock := rest[:end]
-	body := rest[end+4:]
-
+// ParseHolonYAML extracts identity fields from a holon.yaml file.
+func ParseHolonYAML(data []byte) (Identity, error) {
 	var id Identity
-	if err := yaml.Unmarshal([]byte(yamlBlock), &id); err != nil {
-		return Identity{}, "", fmt.Errorf("YAML parse error: %w", err)
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&id); err != nil {
+		return Identity{}, fmt.Errorf("YAML parse error: %w", err)
 	}
+	return id, nil
+}
 
-	return id, body, nil
+// ReadHolonYAML reads and parses a holon.yaml file.
+func ReadHolonYAML(path string) (Identity, []byte, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Identity{}, nil, err
+	}
+	id, err := ParseHolonYAML(data)
+	if err != nil {
+		return Identity{}, nil, err
+	}
+	return id, data, nil
 }

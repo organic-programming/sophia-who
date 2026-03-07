@@ -63,15 +63,15 @@ func startTestServer(t *testing.T, root string) (pb.SophiaWhoServiceClient, func
 	return pb.NewSophiaWhoServiceClient(conn), cleanup
 }
 
-// seedHolon creates a HOLON.md in a subdirectory of root.
+// seedHolon creates a holon.yaml in a subdirectory of root.
 func seedHolon(t *testing.T, root, uuid, givenName string) {
 	t.Helper()
 	dir := filepath.Join(root, givenName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	content := "---\nuuid: \"" + uuid + "\"\ngiven_name: \"" + givenName + "\"\nfamily_name: \"Test\"\nmotto: \"Testing.\"\ncomposer: \"Test\"\nclade: \"deterministic/pure\"\nstatus: draft\nborn: \"2026-01-01\"\nparents: []\nreproduction: \"manual\"\ngenerated_by: \"test\"\nlang: \"go\"\nproto_status: draft\n---\n# " + givenName + "\n"
-	if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte(content), 0644); err != nil {
+	content := "schema: \"holon/v0\"\nuuid: \"" + uuid + "\"\ngiven_name: \"" + givenName + "\"\nfamily_name: \"Test\"\nmotto: \"Testing.\"\ncomposer: \"Test\"\nclade: \"deterministic/pure\"\nstatus: draft\nborn: \"2026-01-01\"\nparents: []\nreproduction: \"manual\"\ngenerated_by: \"test\"\nlang: \"go\"\nproto_status: draft\ndescription: |\n  " + givenName + "\n"
+	if err := os.WriteFile(filepath.Join(dir, identity.ManifestFileName), []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -206,7 +206,7 @@ func TestCreateIdentity(t *testing.T) {
 
 	// Verify the file was actually created
 	if _, err := os.Stat(resp.FilePath); err != nil {
-		t.Errorf("HOLON.md not created at %s: %v", resp.FilePath, err)
+		t.Errorf("holon.yaml not created at %s: %v", resp.FilePath, err)
 	}
 
 	// Verify re-parseable
@@ -214,9 +214,9 @@ func TestCreateIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, _, err := identity.ParseFrontmatter(data)
+	parsed, err := identity.ParseHolonYAML(data)
 	if err != nil {
-		t.Fatalf("created HOLON.md is not parseable: %v", err)
+		t.Fatalf("created holon.yaml is not parseable: %v", err)
 	}
 	if parsed.UUID != resp.Identity.Uuid {
 		t.Errorf("parsed UUID = %q, want %q", parsed.UUID, resp.Identity.Uuid)

@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// validFrontmatter is a minimal valid HOLON.md for testing.
-const validFrontmatter = `---
+const validManifest = `schema: "holon/v0"
 uuid: "test-uuid-1234"
 given_name: "TestHolon"
 family_name: "Prober"
@@ -18,20 +17,18 @@ status: draft
 born: "2026-01-01"
 parents: []
 reproduction: "manual"
+aliases: ["testholon"]
 generated_by: "test"
 lang: "go"
 proto_status: draft
----
-
-# TestHolon Prober
-
-> *"Test all the things."*
+description: |
+  Test holon description.
 `
 
-func TestParseFrontmatter(t *testing.T) {
-	id, body, err := ParseFrontmatter([]byte(validFrontmatter))
+func TestParseHolonYAML(t *testing.T) {
+	id, err := ParseHolonYAML([]byte(validManifest))
 	if err != nil {
-		t.Fatalf("ParseFrontmatter failed: %v", err)
+		t.Fatalf("ParseHolonYAML failed: %v", err)
 	}
 	if id.UUID != "test-uuid-1234" {
 		t.Errorf("UUID = %q, want %q", id.UUID, "test-uuid-1234")
@@ -48,39 +45,24 @@ func TestParseFrontmatter(t *testing.T) {
 	if id.Status != "draft" {
 		t.Errorf("Status = %q, want %q", id.Status, "draft")
 	}
-	if body == "" {
-		t.Error("body must not be empty")
+	if id.Description == "" {
+		t.Error("description must not be empty")
 	}
 }
 
-func TestParseFrontmatterNoFrontmatter(t *testing.T) {
-	_, _, err := ParseFrontmatter([]byte("# Just markdown\nNo frontmatter here."))
-	if err == nil {
-		t.Fatal("expected error for missing frontmatter")
-	}
-}
-
-func TestParseFrontmatterUnclosed(t *testing.T) {
-	_, _, err := ParseFrontmatter([]byte("---\nuuid: \"abc\"\nstatus: draft\n"))
-	if err == nil {
-		t.Fatal("expected error for unclosed frontmatter")
-	}
-}
-
-func TestParseFrontmatterInvalidYAML(t *testing.T) {
-	_, _, err := ParseFrontmatter([]byte("---\n: invalid yaml [[\n---\n"))
+func TestParseHolonYAMLInvalidYAML(t *testing.T) {
+	_, err := ParseHolonYAML([]byte(":\n  - broken"))
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
 }
 
-// setupTestDir creates a temporary directory tree with HOLON.md files
+// setupTestDir creates a temporary directory tree with holon.yaml files
 // for testing FindAll and FindByUUID.
 func setupTestDir(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 
-	// Create two holon directories
 	for _, h := range []struct {
 		dir, uuid, name string
 	}{
@@ -91,19 +73,28 @@ func setupTestDir(t *testing.T) string {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatal(err)
 		}
-		content := "---\nuuid: \"" + h.uuid + "\"\ngiven_name: \"" + h.name + "\"\nfamily_name: \"Test\"\nstatus: draft\n---\n"
-		if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte(content), 0644); err != nil {
+		content := `schema: "holon/v0"
+uuid: "` + h.uuid + `"
+given_name: "` + h.name + `"
+family_name: "Test"
+status: draft
+`
+		if err := os.WriteFile(filepath.Join(dir, ManifestFileName), []byte(content), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Create a hidden directory with a HOLON.md (should be skipped)
 	hidden := filepath.Join(root, ".secret")
 	if err := os.MkdirAll(hidden, 0755); err != nil {
 		t.Fatal(err)
 	}
-	hiddenContent := "---\nuuid: \"hidden-uuid\"\ngiven_name: \"Hidden\"\nfamily_name: \"Test\"\nstatus: draft\n---\n"
-	if err := os.WriteFile(filepath.Join(hidden, "HOLON.md"), []byte(hiddenContent), 0644); err != nil {
+	hiddenContent := `schema: "holon/v0"
+uuid: "hidden-uuid"
+given_name: "Hidden"
+family_name: "Test"
+status: draft
+`
+	if err := os.WriteFile(filepath.Join(hidden, ManifestFileName), []byte(hiddenContent), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -184,12 +175,11 @@ func TestFindByUUIDNotFound(t *testing.T) {
 func TestFindAllSkipsUnparseableFiles(t *testing.T) {
 	root := t.TempDir()
 
-	// Create a HOLON.md with invalid YAML — should be silently skipped
 	dir := filepath.Join(root, "bad-holon")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte("---\n: broken [[\n---\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ManifestFileName), []byte(":\n  - broken"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -209,11 +199,10 @@ func TestFindAllSkipsUnreadableFiles(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "HOLON.md")
-	if err := os.WriteFile(path, []byte("---\nuuid: \"x\"\n---\n"), 0644); err != nil {
+	path := filepath.Join(dir, ManifestFileName)
+	if err := os.WriteFile(path, []byte(validManifest), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Make file unreadable
 	if err := os.Chmod(path, 0000); err != nil {
 		t.Skip("cannot change file permissions on this OS")
 	}
@@ -235,8 +224,8 @@ func TestFindByUUIDSkipsUnreadable(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "HOLON.md")
-	if err := os.WriteFile(path, []byte("---\nuuid: \"findme\"\n---\n"), 0644); err != nil {
+	path := filepath.Join(dir, ManifestFileName)
+	if err := os.WriteFile(path, []byte(validManifest), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(path, 0000); err != nil {
@@ -244,7 +233,7 @@ func TestFindByUUIDSkipsUnreadable(t *testing.T) {
 	}
 	defer os.Chmod(path, 0644) //nolint:errcheck
 
-	_, err := FindByUUID(root, "findme")
+	_, err := FindByUUID(root, "test-uuid-1234")
 	if err == nil {
 		t.Fatal("expected error when file is unreadable")
 	}
@@ -257,7 +246,7 @@ func TestFindByUUIDSkipsUnparseable(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte("---\n: broken\n---\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ManifestFileName), []byte(":\n  - broken"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -269,7 +258,6 @@ func TestFindByUUIDSkipsUnparseable(t *testing.T) {
 
 func TestFindAllNonexistentRoot(t *testing.T) {
 	_, err := FindAll("/nonexistent/path/that/does/not/exist")
-	// WalkDir returns an error for nonexistent root
 	if err != nil {
 		t.Logf("FindAll on nonexistent root returned expected error: %v", err)
 	}
@@ -282,16 +270,13 @@ func TestFindAllIgnoresNonHolonFiles(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	// Create a regular file that is NOT HOLON.md
 	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("# readme"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Also create a valid HOLON.md
-	content := "---\nuuid: \"mixed-uuid\"\ngiven_name: \"Mixed\"\nfamily_name: \"Test\"\nstatus: draft\n---\n"
-	if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ManifestFileName), []byte(validManifest), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -300,20 +285,18 @@ func TestFindAllIgnoresNonHolonFiles(t *testing.T) {
 		t.Fatalf("FindAll failed: %v", err)
 	}
 	if len(holons) != 1 {
-		t.Errorf("FindAll found %d holons, want 1 (should ignore non-HOLON.md files)", len(holons))
+		t.Errorf("FindAll found %d holons, want 1 (should ignore non-holon.yaml files)", len(holons))
 	}
 }
 
 func TestFindAllSkipsDotHolonDir(t *testing.T) {
 	root := t.TempDir()
 
-	// Create a .holon/ directory (should be skipped like any hidden directory)
 	dir := filepath.Join(root, ".holon", "some-tool")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	content := "---\nuuid: \"dotholon-uuid\"\ngiven_name: \"DotHolon\"\nfamily_name: \"Test\"\nstatus: draft\n---\n"
-	if err := os.WriteFile(filepath.Join(dir, "HOLON.md"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ManifestFileName), []byte(validManifest), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -322,7 +305,7 @@ func TestFindAllSkipsDotHolonDir(t *testing.T) {
 		t.Fatalf("FindAll failed: %v", err)
 	}
 	if len(holons) != 0 {
-		t.Errorf("FindAll found %d holons, want 0 (.holon/ should now be skipped)", len(holons))
+		t.Errorf("FindAll found %d holons, want 0 (.holon/ should be skipped)", len(holons))
 	}
 }
 

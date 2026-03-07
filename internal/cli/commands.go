@@ -55,9 +55,9 @@ func RunNew() error {
 		return fmt.Errorf("cannot create directory %s: %w", outputDir, err)
 	}
 
-	outputPath := filepath.Join(outputDir, "HOLON.md")
+	outputPath := filepath.Join(outputDir, identity.ManifestFileName)
 
-	if err := identity.WriteHolonMD(id, outputPath); err != nil {
+	if err := identity.WriteHolonYAML(id, outputPath); err != nil {
 		return err
 	}
 
@@ -159,7 +159,7 @@ func RunList(root string) error {
 	// Local holons: <root>/holons/
 	scanAndPrint(filepath.Join(root, "holons"), "local", "local", localSeen)
 
-	// Also scan root itself for HOLON.md (standalone project)
+	// Also scan root itself for holon.yaml (standalone project)
 	scanAndPrint(root, "root", "local", localSeen)
 
 	// Cached holons: $OPPATH/cache/ (default: ~/.op/cache/)

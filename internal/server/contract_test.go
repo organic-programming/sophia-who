@@ -104,9 +104,9 @@ func TestContractCreateIdentityNominal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read created file: %v", err)
 	}
-	parsed, _, err := identity.ParseFrontmatter(data)
+	parsed, err := identity.ParseHolonYAML(data)
 	if err != nil {
-		t.Fatalf("parse created HOLON.md: %v", err)
+		t.Fatalf("parse created holon.yaml: %v", err)
 	}
 	if parsed.UUID != resp.GetIdentity().GetUuid() {
 		t.Fatalf("parsed uuid = %q, want %q", parsed.UUID, resp.GetIdentity().GetUuid())

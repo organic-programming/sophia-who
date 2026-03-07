@@ -1,6 +1,5 @@
 // Package identity defines the domain model for holon civil status.
-// A holon's identity is its HOLON.md frontmatter: UUID, name, clade,
-// and lineage.
+// A holon's identity lives in holon.yaml: UUID, name, clade, and lineage.
 package identity
 
 import (
@@ -9,9 +8,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Identity holds all fields of a holon's civil status.
-// This struct mirrors the HOLON.md YAML frontmatter defined in IDENTITY.md.
+// Identity holds the identity fields stored in holon.yaml.
 type Identity struct {
+	Schema string `yaml:"schema,omitempty"`
+
 	// Required
 	UUID       string `yaml:"uuid"`
 	GivenName  string `yaml:"given_name"`
@@ -33,6 +33,9 @@ type Identity struct {
 	GeneratedBy string `yaml:"generated_by"`
 	Lang        string `yaml:"lang"`
 	ProtoStatus string `yaml:"proto_status"`
+
+	// Optional descriptive text often scaffolded by Sophia.
+	Description string `yaml:"description,omitempty"`
 }
 
 // Clades enumerates valid computational nature classifications.
@@ -54,6 +57,7 @@ var ReproductionModes = []string{"manual", "assisted", "automatic", "autopoietic
 // New creates a fresh identity with a generated UUID and today's date.
 func New() Identity {
 	return Identity{
+		Schema:      "holon/v0",
 		UUID:        uuid.New().String(),
 		Status:      "draft",
 		Born:        time.Now().Format("2006-01-02"),
